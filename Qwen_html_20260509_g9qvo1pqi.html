@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Geometry Dash - النسخة الكاملة</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+body{background:#111;overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#gameContainer{position:relative;width:100vw;height:100vh}
+
+/* واجهة المستخدم */
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(5px);transition:opacity 0.3s;z-index:20;opacity:0;pointer-events:none}
+.screen.active{opacity:1;pointer-events:all}
+
+.title{font-size:3em;font-weight:900;color:#fff;text-shadow:0 0 20px #00f5ff;margin-bottom:20px;text-align:center;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+.btn{padding:12px 40px;font-size:1.2em;border:none;border-radius:50px;background:linear-gradient(45deg,#00f5ff,#007bff);color:#fff;cursor:pointer;margin:10px;box-shadow:0 4px 15px rgba(0,245,255,0.4);transition:transform 0.2s;font-weight:bold}
+.btn:hover{transform:scale(1.1)}
+.btn:active{transform:scale(0.95)}
+.btn.red{background:linear-gradient(45deg,#ff416c,#ff4b2b);box-shadow:0 4px 15px rgba(255,65,108,0.4)}
+.btn.green{background:linear-gradient(45deg,#11998e,#38ef7d);box-shadow:0 4px 15px rgba(56,239,125,0.4)}
+.btn.yellow{background:linear-gradient(45deg,#f2994a,#f2c94c);box-shadow:0 4px 15px rgba(242,201,76,0.4)}
+
+.hud{position:absolute;top:0;left:0;width:100%;padding:20px;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none}
+.progress-container{flex:1;margin:0 20px;height:10px;background:rgba(255,255,255,0.2);border-radius:5px;overflow:hidden}
+.progress-bar{height:100%;background:#00f5ff;width:0%;transition:width 0.1s linear;box-shadow:0 0 10px #00f5ff}
+.attempts{color:#fff;font-size:1.2em;font-weight:bold;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+.pause-btn{pointer-events:all;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.2em;display:flex;align-items:center;justify-content:center}
+
+.level-grid{display:flex;flex-wrap:wrap;gap:15px;justify-content:center;max-width:800px;max-height:60vh;overflow-y:auto;padding:10px}
+.level-card{width:140px;height:140px;background:linear-gradient(135deg,#333,#444);border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px solid transparent;transition:all 0.3s}
+.level-card:hover{border-color:#00f5ff;transform:translateY(-5px)}
+.level-num{font-size:2em;color:#fff;font-weight:bold}
+.level-name{color:#ccc;margin-top:5px;font-size:0.9em}
+
+.settings-box{background:rgba(255,255,255,0.1);padding:20px;border-radius:15px;width:300px;text-align:right}
+.setting-row{display:flex;justify-content:space-between;align-items:center;margin:15px 0;color:#fff}
+input[type=range]{width:100px}
+
+.notification{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,255,0,0.8);color:#fff;padding:10px 20px;border-radius:20px;z-index:100;animation:fadeUp 2s forwards}
+@keyframes fadeUp{0%{opacity:0;top:0}20%{opacity:1;top:20px}80%{opacity:1;top:20px}100%{opacity:0;top:0}}
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+<canvas id="gameCanvas"></canvas>
+
+<!-- القائمة الرئيسية -->
+<div id="mainMenu" class="screen active">
+    <div class="title">GEOMETRY DASH<br><span style="font-size:0.5em;color:#00f5ff">النسخة العربية الكاملة</span></div>
+    <button class="btn" onclick="showScreen('levelSelect')">🎮 ابدأ اللعب</button>
+    <button class="btn yellow" onclick="showScreen('settings')">⚙️ الإعدادات</button>
+    <button class="btn red" onclick="resetProgress()">🗑️ حذف التقدم</button>
+</div>
+
+<!-- اختيار المراحل -->
+<div id="levelSelect" class="screen">
+    <h2 style="color:#fff;margin-bottom:20px">اختر المرحلة</h2>
+    <div class="level-grid" id="levelGrid"></div>
+    <button class="btn red" onclick="showScreen('mainMenu')" style="margin-top:20px">رجوع</button>
+</div>
+
+<!-- الإعدادات -->
+<div id="settings" class="screen">
+    <h2 style="color:#fff;margin-bottom:20px">الإعدادات</h2>
+    <div class="settings-box">
+        <div class="setting-row"><span>الصوت</span><input type="range" id="volControl" min="0" max="100" value="50"></div>
+        <div class="setting-row"><span>الجسيمات</span><input type="checkbox" id="particlesCheck" checked></div>
+        <div class="setting-row"><span>اهتزاز الشاشة</span><input type="checkbox" id="shakeCheck" checked></div>
+    </div>
+    <button class="btn" onclick="showScreen('mainMenu')" style="margin-top:20px">حفظ ورجوع</button>
+</div>
+
+<!-- شاشة الفوز -->
+<div id="winScreen" class="screen">
+    <h1 style="color:#2ecc71;font-size:3em;text-shadow:0 0 20px #2ecc71">🎉 مرحلة مكتملة!</h1>
+    <p id="winStats" style="color:#fff;margin:20px;font-size:1.2em"></p>
+    <button class="btn green" onclick="nextLevel()">المرحلة التالية ▶️</button>
+    <button class="btn" onclick="restartLevel()">إعادة المحاولة 🔄</button>
+    <button class="btn red" onclick="showScreen('mainMenu')">القائمة الرئيسية 🏠</button>
+</div>
+
+<!-- شاشة الخسارة -->
+<div id="deathScreen" class="screen">
+    <h1 style="color:#e74c3c;font-size:3em;text-shadow:0 0 20px #e74c3c">💀 تحطمت!</h1>
+    <p id="deathStats" style="color:#fff;margin:20px;font-size:1.2em"></p>
+    <button class="btn green" onclick="restartLevel()">حاول مرة أخرى 🔄</button>
+    <button class="btn red" onclick="showScreen('mainMenu')">خروج 🏠</button>
+</div>
+
+<!-- واجهة اللعب -->
+<div id="gameUI" class="hud" style="display:none">
+    <button class="pause-btn" onclick="togglePause()">⏸️</button>
+    <div class="progress-container"><div class="progress-bar" id="progBar"></div></div>
+    <div class="attempts" id="attDisplay">1</div>
+</div>
+
+</div>
+
+<script>
+// --- إعدادات اللعبة ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+// ضبط حجم الشاشة
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// متغيرات الحالة
+let gameState = 'MENU'; // MENU, PLAYING, PAUSED, DEAD, WIN
+let currentLevelIdx = 0;
+let attempts = 1;
+let cameraX = 0;
+let frameCount = 0;
+let particles = [];
+let bgParticles = [];
+let settings = { volume: 0.5, particles: true, shake: true };
+
+// كائن اللاعب
+const player = {
+    x: 0, // سيتم ضبطه بالنسبة للشاشة
+    y: 0,
+    size: 30, // حجم أصغر قليلاً لسهولة المرور
+    dy: 0,
+    angle: 0,
+    onGround: false,
+    dead: false,
+    color: '#00f5ff'
+};
+
+// ثوابت الفيزياء
+const GRAVITY = 0.6;
+const JUMP_FORCE = -10.5; // قفزة قوية
+const BASE_SPEED = 4.5; // سرعة معتدلة
+let gameSpeed = BASE_SPEED;
+
+// بيانات المستويات
+const levels = [
+    { id: 1, name: "البداية", diff: "سهل", len: 2000, spd: 4.0, color: "#2ecc71", bg: "#000000", data: generateLevel(1) },
+    { id: 2, name: "الصحراء", diff: "سهل", len: 2500, spd: 4.5, color: "#f1c40f", bg: "#2c3e50", data: generateLevel(2) },
+    { id: 3, name: "المدينة", diff: "متوسط", len: 3000, spd: 5.0, color: "#3498db", bg: "#1a1a2e", data: generateLevel(3) },
+    { id: 4, name: "الجنون", diff: "صعب", len: 3500, spd: 5.5, color: "#e74c3c", bg: "#2c0000", data: generateLevel(4) },
+    { id: 5, name: "الجحيم", diff: "مجنون", len: 4000, spd: 6.0, color: "#8e44ad", bg: "#100020", data: generateLevel(5) }
+];
+
+// توليد عقبات للمستويات
+function generateLevel(difficulty) {
+    let obs = [];
+    let x = 800; // بداية العقبات بعد مسافة
+    const gap = difficulty * 150 + 200; // مسافة آمنة بين العقبات
+    
+    while(x < levels[difficulty-1].len) {
+        let type = Math.random() > 0.7 ? 'block' : 'spike';
+        
+        if (type === 'spike') {
+            // أحياناً نضع شوكتين أو ثلاث
+            let count = 1;
+            if(difficulty > 2 && Math.random() > 0.5) count = 2;
+            if(difficulty > 4 && Math.random() > 0.5) count = 3;
+            
+            for(let i=0; i<count; i++) {
+                obs.push({ type: 'spike', x: x + (i*30), y: 0 });
+            }
+            x += count * 30 + gap;
+        } else {
+            // كتلة
+            obs.push({ type: 'block', x: x, y: 0, w: 40, h: 40 });
+            // أحياناً شوكة فوق الكتلة أو بعدها
+            if(difficulty > 3) {
+                 obs.push({ type: 'spike', x: x + 40, y: 40 }); // شوكة فوق
+            }
+            x += 40 + gap;
+        }
+    }
+    // خط النهاية
+    obs.push({ type: 'end', x: levels[difficulty-1].len, y: 0 });
+    return obs;
+}
+
+let currentObstacles = [];
+
+// --- نظام الصوت ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = new AudioContext();
+
+function playSound(type) {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    if(settings.volume <= 0) return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+    
+    if (type === 'jump') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+        gain.gain.setValueAtTime(settings.volume * 0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } else if (type === 'die') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(10, now + 0.3);
+        gain.gain.setValueAtTime(settings.volume * 0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'win') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+        gain.gain.setValueAtTime(settings.volume * 0.2, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+    }
+}
+
+// --- التحكم ---
+let jumpPressed = false;
+
+function handleInput(e) {
+    if(e.type === 'keydown' && e.code !== 'Space' && e.code !== 'ArrowUp') return;
+    if(e.type === 'touchstart') e.preventDefault(); // منع التكبير
+    
+    if (gameState === 'PLAYING' && !player.dead) {
+        if (player.onGround) {
+            player.dy = JUMP_FORCE;
+            player.onGround = false;
+            playSound('jump');
+            createParticles(player.x, player.y + player.size, 5, '#fff');
+        }
+    } else if (gameState === 'DEAD' || gameState === 'WIN') {
+        // لا شيء
+    }
+}
+
+window.addEventListener('keydown', handleInput);
+window.addEventListener('mousedown', handleInput);
+window.addEventListener('touchstart', handleInput, {passive: false});
+
+// --- المنطق الأساسي ---
+
+function startGame(levelIdx) {
+    currentLevelIdx = levelIdx;
+    attempts = 1;
+    resetPlayer();
+    loadLevel(levelIdx);
+    showScreen(null); // إخفاء القوائم
+    document.getElementById('gameUI').style.display = 'flex';
+    updateAttempts();
+    gameState = 'PLAYING';
+    loop();
+}
+
+function resetPlayer() {
+    player.x = 200; // موقع اللاعب الثابت على الشاشة أفقياً
+    player.y = H - 150;
+    player.dy = 0;
+    player.angle = 0;
+    player.onGround = false;
+    player.dead = false;
+    cameraX = 0;
+    gameSpeed = levels[currentLevelIdx].spd;
+    particles = [];
+}
+
+function loadLevel(idx) {
+    currentObstacles = JSON.parse(JSON.stringify(levels[idx].data)); // نسخة عميقة
+}
+
+function restartLevel() {
+    attempts++;
+    updateAttempts();
+    resetPlayer();
+    gameState = 'PLAYING';
+    showScreen(null);
+    document.getElementById('gameUI').style.display = 'flex';
+    loop();
+}
+
+function nextLevel() {
+    if(currentLevelIdx < levels.length - 1) {
+        startGame(currentLevelIdx + 1);
+    } else {
+        showScreen('mainMenu'); // عد للقائمة إذا أنهيت كل المراحل
+    }
+}
+
+function togglePause() {
+    if(gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText("موقوف مؤقت", W/2, H/2);
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        loop();
+    }
+}
+
+// --- المحرك الفيزيائي (الأهم) ---
+
+function update() {
+    if (gameState !== 'PLAYING') return;
+
+    // تحريك الكاميرا
+    cameraX += gameSpeed;
+    
+    // فيزياء اللاعب
+    player.dy += GRAVITY;
+    player.y += player.dy;
+
+    // دوران اللاعب أثناء القفز
+    if (!player.onGround) {
+        player.angle += 0.15; // سرعة الدوران
+    } else {
+        // تدوير الزاوية لأقرب 90 درجة عند الهبوط
+        const nearest90 = Math.round(player.angle / (Math.PI/2)) * (Math.PI/2);
+        player.angle = nearest90; 
+    }
+
+    // الأرضية
+    const floorY = H - 100;
+    if (player.y + player.size >= floorY) {
+        player.y = floorY - player.size;
+        player.dy = 0;
+        player.onGround = true;
+    } else {
+        player.onGround = false;
+    }
+
+    // التحقق من التصادم
+    checkCollisions(floorY);
+
+    // تحديث شريط التقدم
+    const progress = Math.min(100, (cameraX / levels[currentLevelIdx].len) * 100);
+    document.getElementById('progBar').style.width = progress + '%';
+    
+    // إنشاء جسيمات في الخلفية
+    if(frameCount % 5 === 0 && settings.particles) {
+        bgParticles.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            s: Math.random() * 2,
+            l: 1
+        });
+    }
+}
+
+function checkCollisions(floorY) {
+    // مربع اللاعب (Hitbox)
+    // نجعل مربع التصادم أصغر قليلاً من الرسم ليكون عادلاً (Forgiving hitbox)
+    const pLeft = player.x + 5;
+    const pRight = player.x + player.size - 5;
+    const pTop = player.y + 5;
+    const pBottom = player.y + player.size - 2; // السماح البسيط للأسفل
+
+    for (let obs of currentObstacles) {
+        // حساب موقع العقبة النسبي للكاميرا
+        const obsX = obs.x - cameraX;
+        
+        // تجاهل العقبات البعيدة خارج الشاشة لتحسين الأداء
+        if (obsX < -100 || obsX > W + 100) continue;
+
+        // 1. خط النهاية
+        if (obs.type === 'end') {
+            if (obsX < player.x) {
+                winLevel();
+            }
+            continue;
+        }
+
+        // 2. الكتل (Blocks)
+        if (obs.type === 'block') {
+            const bLeft = obsX;
+            const bRight = obsX + obs.w;
+            const bTop = floorY - obs.h; // الكتل دائماً على الأرض
+            const bBottom = floorY;
+
+            // هل هناك تداخل؟
+            if (pRight > bLeft && pLeft < bRight && pBottom > bTop && pTop < bBottom) {
+                
+                // حالة الهبوط على الكتلة
+                // إذا كان اللاعب فوق الكتلة وينزل، وكان سابقاً فوقها
+                const prevBottom = (player.y - player.dy) + player.size;
+                if (prevBottom <= bTop + 5 && player.dy >= 0) {
+                    player.y = bTop - player.size;
+                    player.dy = 0;
+                    player.onGround = true;
+                } else {
+                    // الاصطدام بالجانب أو من الأسفل = موت
+                    die();
+                }
+            }
+        }
+        
+        // 3. الشوك (Spikes)
+        if (obs.type === 'spike') {
+            const sLeft = obsX + 5;  // تصغير عرض الشوكة قليلاً
+            const sRight = obsX + 25;
+            const sTop = floorY - 30;
+            const sBottom = floorY;
+
+            // تصادم بسيط (مربع) للشوكة
+            if (pRight > sLeft && pLeft < sRight && pBottom > sTop + 10 && pTop < sBottom) {
+                die();
+            }
+        }
+    }
+}
+
+function die() {
+    if(player.dead) return;
+    player.dead = true;
+    gameState = 'DEAD';
+    playSound('die');
+    
+    // اهتزاز الشاشة
+    if(settings.shake) {
+        canvas.style.transform = `translate(${Math.random()*20-10}px, ${Math.random()*20-10}px)`;
+        setTimeout(() => canvas.style.transform = 'none', 200);
+    }
+
+    // انفجار الجسيمات
+    createParticles(player.x + player.size/2, player.y + player.size/2, 30, player.color);
+
+    setTimeout(() => {
+        document.getElementById('deathStats').innerText = `المحاولات: ${attempts}`;
+        showScreen('deathScreen');
+    }, 800);
+}
+
+function winLevel() {
+    gameState = 'WIN';
+    playSound('win');
+    document.getElementById('winStats').innerText = `أنهيت المرحلة في ${attempts} محاولة`;
+    saveProgress();
+    showScreen('winScreen');
+}
+
+// --- الرسم ---
+
+function draw() {
+    // مسح الشاشة
+    const level = levels[currentLevelIdx];
+    ctx.fillStyle = level.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // رسم الخلفية (شبكة)
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    const gridSize = 50;
+    const offsetX = cameraX % gridSize;
+    
+    for(let x = -offsetX; x < W; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for(let y = 0; y < H; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // رسم الأرضية
+    const floorY = H - 100;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, floorY, W, 100);
+    ctx.strokeStyle = level.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(W, floorY); ctx.stroke();
+
+    // رسم العقبات
+    for (let obs of currentObstacles) {
+        const drawX = obs.x - cameraX;
+        if (drawX < -50 || drawX > W + 50) continue;
+
+        if (obs.type === 'spike') {
+            ctx.fillStyle = '#fff'; // لون الشوكة
+            // رسم مثلث
+            ctx.beginPath();
+            ctx.moveTo(drawX, floorY);
+            ctx.lineTo(drawX + 15, floorY - 30); // قمة الشوكة
+            ctx.lineTo(drawX + 30, floorY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // تفاصيل للشوكة
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } 
+        else if (obs.type === 'block') {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(drawX, floorY - obs.h, obs.w, obs.h);
+            ctx.strokeStyle = level.color; // إطار ملون
+            ctx.lineWidth = 2;
+            ctx.strokeRect(drawX, floorY - obs.h, obs.w, obs.h);
+            
+            // تفاصيل داخلية
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(drawX + 5, floorY - obs.h + 5, obs.w - 10, obs.h - 10);
+        }
+        else if (obs.type === 'end') {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(drawX, 0, 50, H);
+        }
+    }
+
+    // رسم اللاعب
+    if (!player.dead) {
+        ctx.save();
+        ctx.translate(player.x + player.size/2, player.y + player.size/2);
+        ctx.rotate(player.angle);
+        
+        // جسم اللاعب
+        ctx.fillStyle = player.color;
+        ctx.fillRect(-player.size/2, -player.size/2, player.size, player.size);
+        
+        // حدود اللاعب
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-player.size/2, -player.size/2, player.size, player.size);
+        
+        // وجه اللاعب (عينين)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(2, -5, 6, 6);
+        ctx.fillRect(12, -5, 6, 6);
+        
+        ctx.restore();
+    }
+
+    // رسم الجسيمات
+    updateAndDrawParticles();
+
+    frameCount++;
+}
+
+// --- نظام الجسيمات ---
+function createParticles(x, y, count, color) {
+    if(!settings.particles) return;
+    for(let i=0; i<count; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 10,
+            life: 1.0,
+            color: color
+        });
+    }
+}
+
+function updateAndDrawParticles() {
+    for(let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.03;
+        
+        if(p.life <= 0) {
+            particles.splice(i, 1);
+        } else {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+}
+
+// --- حلقة اللعبة ---
+function loop() {
+    if(gameState === 'PLAYING') {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    } else if (gameState === 'DEAD' || gameState === 'WIN') {
+        draw(); // استمرار الرسم للجسيمات
+        if(particles.length > 0) requestAnimationFrame(loop);
+    }
+}
+
+// --- إدارة الواجهة ---
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    if(id) document.getElementById(id).classList.add('active');
+}
+
+function renderLevelSelect() {
+    const grid = document.getElementById('levelGrid');
+    grid.innerHTML = '';
+    levels.forEach((lvl, idx) => {
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        card.style.borderBottom = `4px solid ${lvl.color}`;
+        card.innerHTML = `<div class="level-num">${lvl.id}</div><div class="level-name">${lvl.name}</div>`;
+        card.onclick = () => startGame(idx);
+        grid.appendChild(card);
+    });
+}
+
+function updateAttempts() {
+    document.getElementById('attDisplay').innerText = attempts;
+}
+
+// حفظ وتحميل التقدم
+function saveProgress() {
+    localStorage.setItem('gd_level_' + currentLevelIdx, 'completed');
+}
+
+function resetProgress() {
+    localStorage.clear();
+    alert('تم حذف جميع البيانات!');
+}
+
+// إعدادات الصوت
+document.getElementById('volControl').addEventListener('input', (e) => {
+    settings.volume = e.target.value / 100;
+});
+document.getElementById('particlesCheck').addEventListener('change', (e) => {
+    settings.particles = e.target.checked;
+});
+document.getElementById('shakeCheck').addEventListener('change', (e) => {
+    settings.shake = e.target.checked;
+});
+
+// البدء
+renderLevelSelect();
+// تشغيل خلفية بسيطة في القائمة
+function menuLoop() {
+    if(gameState === 'MENU') {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0,0,W,H);
+        // نجوم خلفية
+        if(Math.random() > 0.9) {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
+        }
+        requestAnimationFrame(menuLoop);
+    }
+}
+menuLoop();
+
+</script>
+</body>
+</html>
