@@ -1,661 +1,1369 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Geometry Dash - النسخة الكاملة</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none}
-body{background:#111;overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;touch-action:none}
-canvas{display:block;width:100%;height:100%}
-#gameContainer{position:relative;width:100vw;height:100vh}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Dash</title>
+  <style>
+    :root {
+      --bg1: #060816;
+      --bg2: #0d1230;
+      --panel: rgba(10, 16, 42, 0.82);
+      --panel2: rgba(18, 26, 58, 0.92);
+      --text: #edf4ff;
+      --muted: #93a4d4;
+      --accent: #7cf7ff;
+      --accent2: #ff76d8;
+      --good: #67f58d;
+      --danger: #ff6b7a;
+      --shadow: rgba(0,0,0,.35);
+      --grid: rgba(255,255,255,.06);
+      --btn: linear-gradient(135deg, rgba(124,247,255,.18), rgba(255,118,216,.16));
+    }
 
-/* واجهة المستخدم */
-.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(5px);transition:opacity 0.3s;z-index:20;opacity:0;pointer-events:none}
-.screen.active{opacity:1;pointer-events:all}
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Tahoma, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(124,247,255,.12), transparent 28%),
+        radial-gradient(circle at 80% 20%, rgba(255,118,216,.09), transparent 26%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      user-select: none;
+    }
 
-.title{font-size:3em;font-weight:900;color:#fff;text-shadow:0 0 20px #00f5ff;margin-bottom:20px;text-align:center;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+    #wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+    }
 
-.btn{padding:12px 40px;font-size:1.2em;border:none;border-radius:50px;background:linear-gradient(45deg,#00f5ff,#007bff);color:#fff;cursor:pointer;margin:10px;box-shadow:0 4px 15px rgba(0,245,255,0.4);transition:transform 0.2s;font-weight:bold}
-.btn:hover{transform:scale(1.1)}
-.btn:active{transform:scale(0.95)}
-.btn.red{background:linear-gradient(45deg,#ff416c,#ff4b2b);box-shadow:0 4px 15px rgba(255,65,108,0.4)}
-.btn.green{background:linear-gradient(45deg,#11998e,#38ef7d);box-shadow:0 4px 15px rgba(56,239,125,0.4)}
-.btn.yellow{background:linear-gradient(45deg,#f2994a,#f2c94c);box-shadow:0 4px 15px rgba(242,201,76,0.4)}
+    canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 20%),
+        radial-gradient(circle at center, rgba(255,255,255,.03), transparent 45%);
+      image-rendering: pixelated;
+    }
 
-.hud{position:absolute;top:0;left:0;width:100%;padding:20px;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none}
-.progress-container{flex:1;margin:0 20px;height:10px;background:rgba(255,255,255,0.2);border-radius:5px;overflow:hidden}
-.progress-bar{height:100%;background:#00f5ff;width:0%;transition:width 0.1s linear;box-shadow:0 0 10px #00f5ff}
-.attempts{color:#fff;font-size:1.2em;font-weight:bold;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
-.pause-btn{pointer-events:all;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.2em;display:flex;align-items:center;justify-content:center}
+    .hud, .menu, .overlay, .settings {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
 
-.level-grid{display:flex;flex-wrap:wrap;gap:15px;justify-content:center;max-width:800px;max-height:60vh;overflow-y:auto;padding:10px}
-.level-card{width:140px;height:140px;background:linear-gradient(135deg,#333,#444);border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px solid transparent;transition:all 0.3s}
-.level-card:hover{border-color:#00f5ff;transform:translateY(-5px)}
-.level-num{font-size:2em;color:#fff;font-weight:bold}
-.level-name{color:#ccc;margin-top:5px;font-size:0.9em}
+    .topbar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      text-shadow: 0 2px 8px var(--shadow);
+    }
 
-.settings-box{background:rgba(255,255,255,0.1);padding:20px;border-radius:15px;width:300px;text-align:right}
-.setting-row{display:flex;justify-content:space-between;align-items:center;margin:15px 0;color:#fff}
-input[type=range]{width:100px}
+    .pill {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 10px 30px var(--shadow);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+      padding: 10px 14px;
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--text);
+    }
 
-.notification{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,255,0,0.8);color:#fff;padding:10px 20px;border-radius:20px;z-index:100;animation:fadeUp 2s forwards}
-@keyframes fadeUp{0%{opacity:0;top:0}20%{opacity:1;top:20px}80%{opacity:1;top:20px}100%{opacity:0;top:0}}
-</style>
+    .progress {
+      flex: 1;
+      max-width: 520px;
+      height: 16px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.09);
+      position: relative;
+    }
+
+    .progress > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 20px rgba(124,247,255,.4);
+      border-radius: inherit;
+    }
+
+    .menu {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      pointer-events: auto;
+    }
+
+    .card {
+      width: min(920px, 100%);
+      background: linear-gradient(180deg, rgba(12,17,46,.88), rgba(8,12,30,.93));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 28px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.45);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1.2fr .8fr;
+      align-items: center;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(124,247,255,.14), transparent 32%),
+        radial-gradient(circle at 80% 20%, rgba(255,118,216,.12), transparent 30%),
+        linear-gradient(135deg, rgba(255,255,255,.05), transparent);
+    }
+
+    .title {
+      font-size: clamp(2.2rem, 5vw, 4.8rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: .5px;
+      margin: 0 0 10px;
+    }
+
+    .title span { color: var(--accent); text-shadow: 0 0 18px rgba(124,247,255,.45); }
+    .subtitle { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.8; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .stat b { display: block; font-size: 1.25rem; margin-bottom: 4px; }
+    .stat small { color: var(--muted); }
+
+    .controls {
+      padding: 0 28px 28px;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .panel {
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: 0 12px 30px var(--shadow);
+    }
+
+    .panel h3 { margin: 0 0 12px; font-size: 1.05rem; }
+    .panel p { margin: 0; color: var(--muted); line-height: 1.8; }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button, select, input[type="range"] {
+      font: inherit;
+    }
+
+    .btn {
+      pointer-events: auto;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,.1);
+      color: var(--text);
+      background: var(--btn);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 12px 26px var(--shadow);
+      transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary { background: rgba(255,255,255,.06); }
+    .btn.good { background: linear-gradient(135deg, rgba(103,245,141,.25), rgba(124,247,255,.16)); }
+    .btn.danger { background: linear-gradient(135deg, rgba(255,107,122,.22), rgba(255,118,216,.16)); }
+
+    .settings {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      background: rgba(0,0,0,.32);
+      backdrop-filter: blur(8px);
+    }
+
+    .settings.open { display: flex; }
+    .settingsBox {
+      width: min(720px, calc(100% - 28px));
+      background: linear-gradient(180deg, rgba(15,20,50,.96), rgba(8,12,30,.97));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 26px;
+      padding: 20px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.5);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 14px;
+      align-items: center;
+      margin: 14px 0;
+    }
+
+    .row label { color: var(--text); display: block; margin-bottom: 8px; font-weight: 700; }
+    .row small { color: var(--muted); }
+    .row input[type="range"], .row select {
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .centerMsg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+      text-align: center;
+      padding: 24px;
+      text-shadow: 0 4px 14px rgba(0,0,0,.5);
+    }
+
+    .centerMsg h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 4.2rem);
+      line-height: 1;
+    }
+
+    .centerMsg p { margin: 0; color: var(--muted); font-size: 1.05rem; }
+
+    .toast {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(5,8,18,.72);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 10px 16px;
+      color: var(--text);
+      box-shadow: 0 12px 32px rgba(0,0,0,.35);
+      display: none;
+    }
+
+    .toast.show { display: block; animation: toast .25s ease; }
+    @keyframes toast { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 820px) {
+      .hero, .controls, .row { grid-template-columns: 1fr; }
+      .progress { max-width: none; order: 2; }
+      .topbar { flex-direction: column; align-items: stretch; }
+      .pill { justify-content: space-between; }
+    }
+  </style>
 </head>
 <body>
+<div id="wrap">
+  <canvas id="game"></canvas>
 
-<div id="gameContainer">
-<canvas id="gameCanvas"></canvas>
-
-<!-- القائمة الرئيسية -->
-<div id="mainMenu" class="screen active">
-    <div class="title">GEOMETRY DASH<br><span style="font-size:0.5em;color:#00f5ff">النسخة العربية الكاملة</span></div>
-    <button class="btn" onclick="showScreen('levelSelect')">🎮 ابدأ اللعب</button>
-    <button class="btn yellow" onclick="showScreen('settings')">⚙️ الإعدادات</button>
-    <button class="btn red" onclick="resetProgress()">🗑️ حذف التقدم</button>
-</div>
-
-<!-- اختيار المراحل -->
-<div id="levelSelect" class="screen">
-    <h2 style="color:#fff;margin-bottom:20px">اختر المرحلة</h2>
-    <div class="level-grid" id="levelGrid"></div>
-    <button class="btn red" onclick="showScreen('mainMenu')" style="margin-top:20px">رجوع</button>
-</div>
-
-<!-- الإعدادات -->
-<div id="settings" class="screen">
-    <h2 style="color:#fff;margin-bottom:20px">الإعدادات</h2>
-    <div class="settings-box">
-        <div class="setting-row"><span>الصوت</span><input type="range" id="volControl" min="0" max="100" value="50"></div>
-        <div class="setting-row"><span>الجسيمات</span><input type="checkbox" id="particlesCheck" checked></div>
-        <div class="setting-row"><span>اهتزاز الشاشة</span><input type="checkbox" id="shakeCheck" checked></div>
+  <div class="hud hidden" id="hud">
+    <div class="topbar">
+      <div class="pill"><strong id="levelName">Level</strong> <span id="difficultyTag"></span></div>
+      <div class="progress" aria-label="progress bar"><i id="progressBar"></i></div>
+      <div class="pill"><span id="statsText">0%</span> <button class="btn secondary" id="settingsBtn" style="padding:8px 12px; border-radius:12px;">الإعدادات</button></div>
     </div>
-    <button class="btn" onclick="showScreen('mainMenu')" style="margin-top:20px">حفظ ورجوع</button>
-</div>
+    <div class="centerMsg hidden" id="centerMsg">
+      <h1 id="centerTitle">Ready</h1>
+      <p id="centerSub">اضغط Space / Click / Tap للقفز</p>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
 
-<!-- شاشة الفوز -->
-<div id="winScreen" class="screen">
-    <h1 style="color:#2ecc71;font-size:3em;text-shadow:0 0 20px #2ecc71">🎉 مرحلة مكتملة!</h1>
-    <p id="winStats" style="color:#fff;margin:20px;font-size:1.2em"></p>
-    <button class="btn green" onclick="nextLevel()">المرحلة التالية ▶️</button>
-    <button class="btn" onclick="restartLevel()">إعادة المحاولة 🔄</button>
-    <button class="btn red" onclick="showScreen('mainMenu')">القائمة الرئيسية 🏠</button>
-</div>
+  <div class="menu" id="menu">
+    <div class="card">
+      <div class="hero">
+        <div>
+          <h1 class="title"><span>Neon</span> Dash</h1>
+          <p class="subtitle">لعبة منصّات سريعة مستوحاة من أسلوب Geometry Dash، فيها مراحل سهلة وصعبة، مؤثرات، إعدادات، موسيقى هادئة، وأسلوب نيون قوي داخل صفحة واحدة.</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>12</b><small>مرحلة جاهزة بمستويات مختلفة</small></div>
+          <div class="stat"><b>FX</b><small>Particles + Screen Shake + Trail</small></div>
+          <div class="stat"><b>♫</b><small>موسيقى داخلية بدون ملفات خارجية</small></div>
+          <div class="stat"><b>⚙</b><small>إعدادات صوت / موسيقى / اهتزاز</small></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="panel">
+          <h3>ابدأ اللعب</h3>
+          <p>اختر مستوى، ثم ابدأ. اللعبة تعمل بالكيبورد أو الفأرة أو اللمس. اضغط Space أو انقر للقفز، و R لإعادة المرحلة.</p>
+          <div class="buttons">
+            <button class="btn good" id="startEasy">ابدأ سهل</button>
+            <button class="btn" id="startHard">ابدأ صعب</button>
+            <button class="btn secondary" id="openSettingsFromMenu">الإعدادات</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>ماذا يوجد داخلها</h3>
+          <p>منصّات متحركة، بوابات قفز، أشواك، مناطق سرعة، انتقال مراحل، انفجار عند الخسارة، وتدرجات لونية متحركة. اللعبة قابلة للتطوير لاحقًا لمراحل أكثر وسيوات إضافية.</p>
+          <div class="buttons">
+            <button class="btn secondary" data-level="0">Level 1</button>
+            <button class="btn secondary" data-level="3">Level 4</button>
+            <button class="btn secondary" data-level="6">Level 7</button>
+            <button class="btn secondary" data-level="10">Level 11</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- شاشة الخسارة -->
-<div id="deathScreen" class="screen">
-    <h1 style="color:#e74c3c;font-size:3em;text-shadow:0 0 20px #e74c3c">💀 تحطمت!</h1>
-    <p id="deathStats" style="color:#fff;margin:20px;font-size:1.2em"></p>
-    <button class="btn green" onclick="restartLevel()">حاول مرة أخرى 🔄</button>
-    <button class="btn red" onclick="showScreen('mainMenu')">خروج 🏠</button>
-</div>
-
-<!-- واجهة اللعب -->
-<div id="gameUI" class="hud" style="display:none">
-    <button class="pause-btn" onclick="togglePause()">⏸️</button>
-    <div class="progress-container"><div class="progress-bar" id="progBar"></div></div>
-    <div class="attempts" id="attDisplay">1</div>
-</div>
-
+  <div class="settings" id="settingsPanel">
+    <div class="settingsBox">
+      <h2 style="margin-top:0">الإعدادات</h2>
+      <div class="row">
+        <div>
+          <label>الصوت</label>
+          <small>تشغيل/إيقاف المؤثرات والصوت العام</small>
+        </div>
+        <div><select id="soundToggle"><option value="on">تشغيل</option><option value="off">إيقاف</option></select></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>الموسيقى</label>
+          <small>موسيقى هادئة متكررة تعمل داخل المتصفح</small>
+        </div>
+        <div><select id="musicToggle"><option value="on">تشغيل</option><option value="off">إيقاف</option></select></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>مستوى الموسيقى</label>
+          <small>عدل الصوت حسب راحتك</small>
+        </div>
+        <div><input id="musicVolume" type="range" min="0" max="100" value="30"></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>الاهتزاز</label>
+          <small>إظهار اهتزاز خفيف عند الاصطدام</small>
+        </div>
+        <div><select id="shakeToggle"><option value="on">تشغيل</option><option value="off">إيقاف</option></select></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>اللغة الظاهرة</label>
+          <small>الواجهة عربية مع أزرار واضحة</small>
+        </div>
+        <div><select id="themeSelect"><option value="neon">Neon</option><option value="cool">Cool</option><option value="sunset">Sunset</option></select></div>
+      </div>
+      <div class="buttons" style="justify-content:flex-end; margin-top:18px;">
+        <button class="btn secondary" id="closeSettings">إغلاق</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// --- إعدادات اللعبة ---
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-let W, H;
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const hud = document.getElementById('hud');
+  const menu = document.getElementById('menu');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const progressBar = document.getElementById('progressBar');
+  const statsText = document.getElementById('statsText');
+  const levelName = document.getElementById('levelName');
+  const difficultyTag = document.getElementById('difficultyTag');
+  const centerMsg = document.getElementById('centerMsg');
+  const centerTitle = document.getElementById('centerTitle');
+  const centerSub = document.getElementById('centerSub');
+  const toast = document.getElementById('toast');
 
-// ضبط حجم الشاشة
-function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
+  const settingEls = {
+    sound: document.getElementById('soundToggle'),
+    music: document.getElementById('musicToggle'),
+    musicVol: document.getElementById('musicVolume'),
+    shake: document.getElementById('shakeToggle'),
+    theme: document.getElementById('themeSelect'),
+  };
 
-// متغيرات الحالة
-let gameState = 'MENU'; // MENU, PLAYING, PAUSED, DEAD, WIN
-let currentLevelIdx = 0;
-let attempts = 1;
-let cameraX = 0;
-let frameCount = 0;
-let particles = [];
-let bgParticles = [];
-let settings = { volume: 0.5, particles: true, shake: true };
+  const S = {
+    w: 1280,
+    h: 720,
+    dpr: 1,
+    running: false,
+    paused: false,
+    levelIndex: 0,
+    segmentIndex: 0,
+    segmentsPassed: 0,
+    deathFlash: 0,
+    shake: 0,
+    best: JSON.parse(localStorage.getItem('neonDashBest') || '{}'),
+    unlock: Number(localStorage.getItem('neonDashUnlock') || 0),
+    settings: JSON.parse(localStorage.getItem('neonDashSettings') || 'null') || {
+      sound: 'on', music: 'on', musicVol: 30, shake: 'on', theme: 'neon'
+    },
+  };
 
-// كائن اللاعب
-const player = {
-    x: 0, // سيتم ضبطه بالنسبة للشاشة
-    y: 0,
-    size: 30, // حجم أصغر قليلاً لسهولة المرور
-    dy: 0,
-    angle: 0,
-    onGround: false,
-    dead: false,
-    color: '#00f5ff'
-};
+  const THEMES = {
+    neon: {
+      bg1: '#060816', bg2: '#0d1230', accent: '#7cf7ff', accent2: '#ff76d8', grid: 'rgba(255,255,255,.06)'
+    },
+    cool: {
+      bg1: '#06111a', bg2: '#10314d', accent: '#66e3ff', accent2: '#7cf7a6', grid: 'rgba(255,255,255,.07)'
+    },
+    sunset: {
+      bg1: '#130611', bg2: '#31103a', accent: '#ff9d6c', accent2: '#ff6cd8', grid: 'rgba(255,255,255,.07)'
+    }
+  };
 
-// ثوابت الفيزياء
-const GRAVITY = 0.6;
-const JUMP_FORCE = -10.5; // قفزة قوية
-const BASE_SPEED = 4.5; // سرعة معتدلة
-let gameSpeed = BASE_SPEED;
+  function applyTheme() {
+    const t = THEMES[S.settings.theme] || THEMES.neon;
+    document.documentElement.style.setProperty('--bg1', t.bg1);
+    document.documentElement.style.setProperty('--bg2', t.bg2);
+    document.documentElement.style.setProperty('--accent', t.accent);
+    document.documentElement.style.setProperty('--accent2', t.accent2);
+    document.documentElement.style.setProperty('--grid', t.grid);
+  }
 
-// بيانات المستويات
-const levels = [
-    { id: 1, name: "البداية", diff: "سهل", len: 2000, spd: 4.0, color: "#2ecc71", bg: "#000000", data: generateLevel(1) },
-    { id: 2, name: "الصحراء", diff: "سهل", len: 2500, spd: 4.5, color: "#f1c40f", bg: "#2c3e50", data: generateLevel(2) },
-    { id: 3, name: "المدينة", diff: "متوسط", len: 3000, spd: 5.0, color: "#3498db", bg: "#1a1a2e", data: generateLevel(3) },
-    { id: 4, name: "الجنون", diff: "صعب", len: 3500, spd: 5.5, color: "#e74c3c", bg: "#2c0000", data: generateLevel(4) },
-    { id: 5, name: "الجحيم", diff: "مجنون", len: 4000, spd: 6.0, color: "#8e44ad", bg: "#100020", data: generateLevel(5) }
-];
+  function saveSettings() {
+    localStorage.setItem('neonDashSettings', JSON.stringify(S.settings));
+    localStorage.setItem('neonDashUnlock', String(S.unlock));
+    localStorage.setItem('neonDashBest', JSON.stringify(S.best));
+  }
 
-// توليد عقبات للمستويات
-function generateLevel(difficulty) {
-    let obs = [];
-    let x = 800; // بداية العقبات بعد مسافة
-    const gap = difficulty * 150 + 200; // مسافة آمنة بين العقبات
-    
-    while(x < levels[difficulty-1].len) {
-        let type = Math.random() > 0.7 ? 'block' : 'spike';
-        
-        if (type === 'spike') {
-            // أحياناً نضع شوكتين أو ثلاث
-            let count = 1;
-            if(difficulty > 2 && Math.random() > 0.5) count = 2;
-            if(difficulty > 4 && Math.random() > 0.5) count = 3;
-            
-            for(let i=0; i<count; i++) {
-                obs.push({ type: 'spike', x: x + (i*30), y: 0 });
-            }
-            x += count * 30 + gap;
+  function resize() {
+    S.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width = Math.floor(innerWidth * S.dpr);
+    canvas.height = Math.floor(innerHeight * S.dpr);
+    S.w = innerWidth;
+    S.h = innerHeight;
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  const audio = {
+    ctx: null,
+    master: null,
+    musicGain: null,
+    started: false,
+    osc1: null,
+    osc2: null,
+    lfo: null,
+    lfoGain: null,
+    step: 0,
+    lastNoteAt: 0,
+  };
+
+  function ensureAudio() {
+    if (audio.started) return;
+    const A = window.AudioContext || window.webkitAudioContext;
+    if (!A) return;
+    audio.ctx = new A();
+    audio.master = audio.ctx.createGain();
+    audio.musicGain = audio.ctx.createGain();
+    audio.musicGain.gain.value = (S.settings.musicVol || 30) / 100 * 0.5;
+    audio.master.gain.value = 0.75;
+    audio.musicGain.connect(audio.master);
+    audio.master.connect(audio.ctx.destination);
+    audio.started = true;
+    startMusicNodes();
+  }
+
+  function startMusicNodes() {
+    if (!audio.ctx || audio.osc1) return;
+    const ctxA = audio.ctx;
+    audio.osc1 = ctxA.createOscillator();
+    audio.osc2 = ctxA.createOscillator();
+    const g1 = ctxA.createGain();
+    const g2 = ctxA.createGain();
+    const filter = ctxA.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+
+    audio.lfo = ctxA.createOscillator();
+    audio.lfoGain = ctxA.createGain();
+    audio.lfo.frequency.value = 0.08;
+    audio.lfoGain.gain.value = 18;
+    audio.lfo.connect(audio.lfoGain);
+    audio.lfoGain.connect(filter.frequency);
+
+    audio.osc1.type = 'sine';
+    audio.osc2.type = 'triangle';
+    audio.osc1.frequency.value = 220;
+    audio.osc2.frequency.value = 440;
+    g1.gain.value = 0.06;
+    g2.gain.value = 0.03;
+
+    audio.osc1.connect(g1);
+    audio.osc2.connect(g2);
+    g1.connect(filter);
+    g2.connect(filter);
+    filter.connect(audio.musicGain);
+
+    audio.osc1.start();
+    audio.osc2.start();
+    audio.lfo.start();
+  }
+
+  function playTone(freq = 440, dur = 0.08, type = 'square', vol = 0.12) {
+    if (S.settings.sound !== 'on') return;
+    ensureAudio();
+    if (!audio.ctx) return;
+    const o = audio.ctx.createOscillator();
+    const g = audio.ctx.createGain();
+    const f = audio.ctx.createBiquadFilter();
+    o.type = type;
+    o.frequency.value = freq;
+    f.type = 'lowpass';
+    f.frequency.value = 1400;
+    g.gain.value = vol;
+    o.connect(f);
+    f.connect(g);
+    g.connect(audio.master);
+    const t = audio.ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+
+  const musicScale = [0, 3, 5, 7, 10, 12, 15, 17];
+  const musicRoots = [220, 196, 174, 196];
+  function updateMusic(dt) {
+    if (audio.musicGain) {
+      if (S.settings.music !== 'on') {
+        audio.musicGain.gain.value = 0;
+        return;
+      }
+    }
+    if (S.settings.music !== 'on') return;
+    ensureAudio();
+    if (!audio.ctx || !audio.osc1) return;
+    audio.musicGain.gain.value = (S.settings.musicVol || 30) / 100 * 0.5;
+    audio.step += dt;
+    const pace = 0.36;
+    while (audio.step >= pace) {
+      audio.step -= pace;
+      const root = musicRoots[Math.floor((performance.now() / 8000) % musicRoots.length)];
+      const seq = [0, 2, 4, 2, 5, 4, 2, 0];
+      const idx = Math.floor((performance.now() / 360) % seq.length);
+      const note = root * Math.pow(2, (musicScale[seq[idx]] || 0) / 12);
+      audio.osc1.frequency.setTargetAtTime(note, audio.ctx.currentTime, 0.04);
+      audio.osc2.frequency.setTargetAtTime(note * 2, audio.ctx.currentTime, 0.04);
+    }
+  }
+
+  function beepSuccess() { playTone(740, 0.07, 'sine', 0.09); setTimeout(() => playTone(980, 0.08, 'sine', 0.09), 60); }
+  function beepFail() { playTone(140, 0.12, 'square', 0.14); setTimeout(() => playTone(90, 0.14, 'square', 0.11), 70); }
+  function beepJump() { playTone(520 + Math.random() * 40, 0.05, 'triangle', 0.05); }
+
+  function showToast(msg, ms = 1400) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), ms);
+  }
+
+  const TILE = 40;
+  const gravity = 2200;
+  const jumpVel = -760;
+  const coyoteTime = 0.08;
+
+  function makeLevels() {
+    const lvls = [];
+    const mk = (name, difficulty, speed, length, seed, specials = {}) => {
+      const data = [];
+      const push = (type, x, y, w = 1, h = 1, extra = {}) => data.push({ type, x, y, w, h, ...extra });
+      // ground blocks
+      for (let i = 0; i < length; i++) push('ground', i, 14, 1, 1);
+      // patterns
+      let x = 10;
+      let toggle = 0;
+      const rnd = mulberry32(seed);
+      while (x < length - 10) {
+        const r = rnd();
+        if (difficulty === 'easy') {
+          // المرحلة السهلة تحتوي فقط على مثلث واحد في كل مرة، مع مسافات كبيرة جداً.
+          if (r < 0.45) {
+            push('spike', x, 13);
+            x += 7;
+          }
+          else if (r < 0.75) {
+            push('platform', x, 10 - (toggle % 2), 3, 1, { move: 0 }); 
+            x += 8;
+          }
+          else {
+            push('boost', x, 13, 1, 1, { speed: 1.08 }); 
+            x += 6;
+          }
+        } else if (difficulty === 'normal') {
+          if (r < 0.25) { push('spike', x, 13); push('spike', x + 1, 13); x += 5; }
+          else if (r < 0.48) { push('platform', x, 9 - (toggle % 2), 3, 1, { move: (toggle % 2) ? 1 : -1 }); push('spike', x + 4, 13); x += 8; }
+          else if (r < 0.68) { push('portal', x, 13, 1, 1, { jump: 1.35 }); x += 4; }
+          else if (r < 0.85) { push('spike', x, 13); push('spike', x + 2, 13); push('spike', x + 4, 13); x += 7; }
+          else { push('boost', x, 13, 1, 1, { speed: 1.25 }); x += 5; }
         } else {
-            // كتلة
-            obs.push({ type: 'block', x: x, y: 0, w: 40, h: 40 });
-            // أحياناً شوكة فوق الكتلة أو بعدها
-            if(difficulty > 3) {
-                 obs.push({ type: 'spike', x: x + 40, y: 40 }); // شوكة فوق
-            }
-            x += 40 + gap;
+          if (r < 0.20) { push('spike', x, 13); push('spike', x + 1, 13); push('spike', x + 2, 13); x += 6; }
+          else if (r < 0.40) { push('platform', x, 9 - (toggle % 3), 4, 1, { move: (toggle % 2) ? 1 : -1 }); push('spike', x + 5, 13); x += 9; }
+          else if (r < 0.58) { push('portal', x, 13, 1, 1, { jump: 1.45 }); push('spike', x + 2, 13); x += 5; }
+          else if (r < 0.78) { push('movingSaw', x, 9, 1, 1, { axis: 'y', range: 3 }); x += 7; }
+          else { push('boost', x, 13, 1, 1, { speed: 1.35 }); x += 4; }
         }
-    }
-    // خط النهاية
-    obs.push({ type: 'end', x: levels[difficulty-1].len, y: 0 });
-    return obs;
-}
-
-let currentObstacles = [];
-
-// --- نظام الصوت ---
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-let audioCtx = new AudioContext();
-
-function playSound(type) {
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-    if(settings.volume <= 0) return;
-
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    const now = audioCtx.currentTime;
-    
-    if (type === 'jump') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-        gain.gain.setValueAtTime(settings.volume * 0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now);
-        osc.stop(now + 0.1);
-    } else if (type === 'die') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, now);
-        osc.frequency.exponentialRampToValueAtTime(10, now + 0.3);
-        gain.gain.setValueAtTime(settings.volume * 0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
-    } else if (type === 'win') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.2);
-        gain.gain.setValueAtTime(settings.volume * 0.2, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.5);
-        osc.start(now);
-        osc.stop(now + 0.5);
-    }
-}
-
-// --- التحكم ---
-let jumpPressed = false;
-
-function handleInput(e) {
-    if(e.type === 'keydown' && e.code !== 'Space' && e.code !== 'ArrowUp') return;
-    if(e.type === 'touchstart') e.preventDefault(); // منع التكبير
-    
-    if (gameState === 'PLAYING' && !player.dead) {
-        if (player.onGround) {
-            player.dy = JUMP_FORCE;
-            player.onGround = false;
-            playSound('jump');
-            createParticles(player.x, player.y + player.size, 5, '#fff');
+        toggle++;
+      }
+      push('finish', length - 6, 13, 1, 1);
+      if (specials.gaps) {
+        for (const g of specials.gaps) {
+          for (let i = 0; i < g.w; i++) {
+            const idx = g.x + i;
+            const found = data.findIndex(v => v.type === 'ground' && v.x === idx && v.y === 14);
+            if (found >= 0) data.splice(found, 1);
+          }
         }
-    } else if (gameState === 'DEAD' || gameState === 'WIN') {
-        // لا شيء
-    }
-}
+      }
+      return { name, difficulty, speed, length, data };
+    };
 
-window.addEventListener('keydown', handleInput);
-window.addEventListener('mousedown', handleInput);
-window.addEventListener('touchstart', handleInput, {passive: false});
+    lvls.push(mk('Morning Drift', 'Easy', 170, 70, 101, { gaps: [] }));
+    lvls.push(mk('Soft Pulse', 'Easy', 245, 132, 2, { gaps: [{ x: 38, w: 3 }, { x: 90, w: 4 }] }));
+    lvls.push(mk('Cloud Skip', 'Easy', 255, 145, 3));
+    lvls.push(mk('Neon Warmup', 'Normal', 270, 150, 4));
+    lvls.push(mk('Glow Path', 'Normal', 280, 165, 5));
+    lvls.push(mk('Byte Rush', 'Normal', 290, 172, 6));
+    lvls.push(mk('Blue Circuit', 'Hard', 305, 180, 7));
+    lvls.push(mk('Violet Strike', 'Hard', 315, 190, 8));
+    lvls.push(mk('Laser Alley', 'Hard', 325, 200, 9));
+    lvls.push(mk('Starfall', 'Hard', 335, 210, 10));
+    lvls.push(mk('Zero Gravity', 'Hard', 345, 220, 11));
+    lvls.push(mk('Final Frenzy', 'Hard', 360, 240, 12));
+    return lvls;
+  }
 
-// --- المنطق الأساسي ---
+  function mulberry32(a) {
+    return function() {
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
 
-function startGame(levelIdx) {
-    currentLevelIdx = levelIdx;
-    attempts = 1;
+  const levels = makeLevels();
+
+  const game = {
+    t: 0,
+    cameraX: 0,
+    worldSpeed: levels[0].speed,
+    level: null,
+    blocks: [],
+    particles: [],
+    stars: [],
+    player: null,
+    keys: {},
+    jumpHeld: false,
+    touchDown: false,
+    combo: 0,
+    time: 0,
+    startedAt: 0,
+    lastHit: 0,
+    moveShake: 0,
+    glide: 0,
+  };
+
+  function resetPlayer() {
+    game.player = {
+      x: 140,
+      y: (14 * TILE) - 54,
+      w: 34,
+      h: 34,
+      vx: game.worldSpeed,
+      vy: 0,
+      onGround: false,
+      alive: true,
+      rot: 0,
+      trail: [],
+      coyote: 0,
+      jumpBuffer: 0,
+      scale: 1,
+    };
+  }
+
+  function loadLevel(index, fromMenu = false) {
+    game.level = levels[Math.max(0, Math.min(levels.length - 1, index))];
+    game.blocks = game.level.data.map(b => ({ ...b, phase: Math.random() * Math.PI * 2, baseY: b.y }));
+    game.worldSpeed = game.level.speed;
+    game.cameraX = 0;
+    game.particles.length = 0;
+    game.t = 0;
+    game.time = 0;
+    game.lastHit = 0;
+    game.combo = 0;
+    game.startedAt = performance.now();
     resetPlayer();
-    loadLevel(levelIdx);
-    showScreen(null); // إخفاء القوائم
-    document.getElementById('gameUI').style.display = 'flex';
-    updateAttempts();
-    gameState = 'PLAYING';
-    loop();
-}
+    S.levelIndex = index;
+    S.segmentIndex = 0;
+    S.running = true;
+    S.paused = false;
+    menu.classList.add('hidden');
+    hud.classList.remove('hidden');
+    centerMsg.classList.add('hidden');
+    levelName.textContent = game.level.name;
+    difficultyTag.textContent = '• ' + game.level.difficulty;
+    showToast(fromMenu ? `بدأت ${game.level.name}` : `إعادة ${game.level.name}`);
+    updateHud();
+    if (S.settings.music === 'on') ensureAudio();
+    if (S.settings.sound === 'on') playTone(620, 0.06, 'triangle', 0.04);
+  }
 
-function resetPlayer() {
-    player.x = 200; // موقع اللاعب الثابت على الشاشة أفقياً
-    player.y = H - 150;
-    player.dy = 0;
-    player.angle = 0;
-    player.onGround = false;
-    player.dead = false;
-    cameraX = 0;
-    gameSpeed = levels[currentLevelIdx].spd;
-    particles = [];
-}
+  function restartLevel() {
+    loadLevel(S.levelIndex);
+  }
 
-function loadLevel(idx) {
-    currentObstacles = JSON.parse(JSON.stringify(levels[idx].data)); // نسخة عميقة
-}
-
-function restartLevel() {
-    attempts++;
-    updateAttempts();
-    resetPlayer();
-    gameState = 'PLAYING';
-    showScreen(null);
-    document.getElementById('gameUI').style.display = 'flex';
-    loop();
-}
-
-function nextLevel() {
-    if(currentLevelIdx < levels.length - 1) {
-        startGame(currentLevelIdx + 1);
-    } else {
-        showScreen('mainMenu'); // عد للقائمة إذا أنهيت كل المراحل
+  function endLevel() {
+    S.unlock = Math.max(S.unlock, S.levelIndex + 1);
+    S.best[String(S.levelIndex)] = Math.min(S.best[String(S.levelIndex)] ?? 999999, Math.floor((performance.now() - game.startedAt) / 1000));
+    saveSettings();
+    S.running = false;
+    centerMsg.classList.remove('hidden');
+    centerTitle.textContent = 'تم الفوز!';
+    centerSub.textContent = 'اضغط Enter للمرحلة التالية أو ارجع للقائمة';
+    showToast('تم إنهاء المرحلة بنجاح!', 1800);
+    beepSuccess();
+    if (S.levelIndex < levels.length - 1) {
+      setTimeout(() => {
+        centerSub.textContent = 'اضغط N للمرحلة التالية أو ارجع للقائمة';
+      }, 500);
     }
-}
+  }
 
-function togglePause() {
-    if(gameState === 'PLAYING') {
-        gameState = 'PAUSED';
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(0,0,W,H);
-        ctx.fillStyle = '#fff';
-        ctx.font = '30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText("موقوف مؤقت", W/2, H/2);
-    } else if (gameState === 'PAUSED') {
-        gameState = 'PLAYING';
-        loop();
-    }
-}
-
-// --- المحرك الفيزيائي (الأهم) ---
-
-function update() {
-    if (gameState !== 'PLAYING') return;
-
-    // تحريك الكاميرا
-    cameraX += gameSpeed;
-    
-    // فيزياء اللاعب
-    player.dy += GRAVITY;
-    player.y += player.dy;
-
-    // دوران اللاعب أثناء القفز
-    if (!player.onGround) {
-        player.angle += 0.15; // سرعة الدوران
-    } else {
-        // تدوير الزاوية لأقرب 90 درجة عند الهبوط
-        const nearest90 = Math.round(player.angle / (Math.PI/2)) * (Math.PI/2);
-        player.angle = nearest90; 
-    }
-
-    // الأرضية
-    const floorY = H - 100;
-    if (player.y + player.size >= floorY) {
-        player.y = floorY - player.size;
-        player.dy = 0;
-        player.onGround = true;
-    } else {
-        player.onGround = false;
-    }
-
-    // التحقق من التصادم
-    checkCollisions(floorY);
-
-    // تحديث شريط التقدم
-    const progress = Math.min(100, (cameraX / levels[currentLevelIdx].len) * 100);
-    document.getElementById('progBar').style.width = progress + '%';
-    
-    // إنشاء جسيمات في الخلفية
-    if(frameCount % 5 === 0 && settings.particles) {
-        bgParticles.push({
-            x: Math.random() * W,
-            y: Math.random() * H,
-            s: Math.random() * 2,
-            l: 1
-        });
-    }
-}
-
-function checkCollisions(floorY) {
-    // مربع اللاعب (Hitbox)
-    // نجعل مربع التصادم أصغر قليلاً من الرسم ليكون عادلاً (Forgiving hitbox)
-    const pLeft = player.x + 5;
-    const pRight = player.x + player.size - 5;
-    const pTop = player.y + 5;
-    const pBottom = player.y + player.size - 2; // السماح البسيط للأسفل
-
-    for (let obs of currentObstacles) {
-        // حساب موقع العقبة النسبي للكاميرا
-        const obsX = obs.x - cameraX;
-        
-        // تجاهل العقبات البعيدة خارج الشاشة لتحسين الأداء
-        if (obsX < -100 || obsX > W + 100) continue;
-
-        // 1. خط النهاية
-        if (obs.type === 'end') {
-            if (obsX < player.x) {
-                winLevel();
-            }
-            continue;
-        }
-
-        // 2. الكتل (Blocks)
-        if (obs.type === 'block') {
-            const bLeft = obsX;
-            const bRight = obsX + obs.w;
-            const bTop = floorY - obs.h; // الكتل دائماً على الأرض
-            const bBottom = floorY;
-
-            // هل هناك تداخل؟
-            if (pRight > bLeft && pLeft < bRight && pBottom > bTop && pTop < bBottom) {
-                
-                // حالة الهبوط على الكتلة
-                // إذا كان اللاعب فوق الكتلة وينزل، وكان سابقاً فوقها
-                const prevBottom = (player.y - player.dy) + player.size;
-                if (prevBottom <= bTop + 5 && player.dy >= 0) {
-                    player.y = bTop - player.size;
-                    player.dy = 0;
-                    player.onGround = true;
-                } else {
-                    // الاصطدام بالجانب أو من الأسفل = موت
-                    die();
-                }
-            }
-        }
-        
-        // 3. الشوك (Spikes)
-        if (obs.type === 'spike') {
-            const sLeft = obsX + 5;  // تصغير عرض الشوكة قليلاً
-            const sRight = obsX + 25;
-            const sTop = floorY - 30;
-            const sBottom = floorY;
-
-            // تصادم بسيط (مربع) للشوكة
-            if (pRight > sLeft && pLeft < sRight && pBottom > sTop + 10 && pTop < sBottom) {
-                die();
-            }
-        }
-    }
-}
-
-function die() {
-    if(player.dead) return;
-    player.dead = true;
-    gameState = 'DEAD';
-    playSound('die');
-    
-    // اهتزاز الشاشة
-    if(settings.shake) {
-        canvas.style.transform = `translate(${Math.random()*20-10}px, ${Math.random()*20-10}px)`;
-        setTimeout(() => canvas.style.transform = 'none', 200);
-    }
-
-    // انفجار الجسيمات
-    createParticles(player.x + player.size/2, player.y + player.size/2, 30, player.color);
-
+  function die(reason = 'اصطدام') {
+    if (!game.player.alive) return;
+    game.player.alive = false;
+    S.deathFlash = 1;
+    S.shake = S.settings.shake === 'on' ? 18 : 0;
+    game.particles.push(...spawnBurst(game.player.x + game.player.w / 2, game.player.y + game.player.h / 2, 20, '#ff6b7a'));
+    showToast(reason, 1000);
+    beepFail();
+    centerMsg.classList.remove('hidden');
+    centerTitle.textContent = 'خسرت';
+    centerSub.textContent = 'اضغط R لإعادة المحاولة';
     setTimeout(() => {
-        document.getElementById('deathStats').innerText = `المحاولات: ${attempts}`;
-        showScreen('deathScreen');
-    }, 800);
-}
+      if (!S.running) return;
+      restartLevel();
+    }, 850);
+  }
 
-function winLevel() {
-    gameState = 'WIN';
-    playSound('win');
-    document.getElementById('winStats').innerText = `أنهيت المرحلة في ${attempts} محاولة`;
-    saveProgress();
-    showScreen('winScreen');
-}
-
-// --- الرسم ---
-
-function draw() {
-    // مسح الشاشة
-    const level = levels[currentLevelIdx];
-    ctx.fillStyle = level.bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // رسم الخلفية (شبكة)
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    const gridSize = 50;
-    const offsetX = cameraX % gridSize;
-    
-    for(let x = -offsetX; x < W; x += gridSize) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  function spawnBurst(x, y, count, color) {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      arr.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 650,
+        vy: (Math.random() - 0.5) * 650,
+        life: 0.9 + Math.random() * 0.7,
+        age: 0,
+        color,
+        size: 2 + Math.random() * 4,
+      });
     }
-    for(let y = 0; y < H; y += gridSize) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    return arr;
+  }
+
+  function addParticles(x, y, count = 4, color = 'rgba(124,247,255,.9)') {
+    for (let i = 0; i < count; i++) {
+      game.particles.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        vx: -60 + Math.random() * 120,
+        vy: -30 + Math.random() * 60,
+        life: 0.5 + Math.random() * 0.4,
+        age: 0,
+        color,
+        size: 1.5 + Math.random() * 2.5,
+      });
     }
+  }
 
-    // رسم الأرضية
-    const floorY = H - 100;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, floorY, W, 100);
-    ctx.strokeStyle = level.color;
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(W, floorY); ctx.stroke();
+  function rectsIntersect(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
 
-    // رسم العقبات
-    for (let obs of currentObstacles) {
-        const drawX = obs.x - cameraX;
-        if (drawX < -50 || drawX > W + 50) continue;
+  function tileRect(tile) {
+    return { x: tile.x * TILE, y: tile.y * TILE, w: tile.w * TILE, h: tile.h * TILE };
+  }
 
-        if (obs.type === 'spike') {
-            ctx.fillStyle = '#fff'; // لون الشوكة
-            // رسم مثلث
-            ctx.beginPath();
-            ctx.moveTo(drawX, floorY);
-            ctx.lineTo(drawX + 15, floorY - 30); // قمة الشوكة
-            ctx.lineTo(drawX + 30, floorY);
-            ctx.closePath();
-            ctx.fill();
-            
-            // تفاصيل للشوكة
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        } 
-        else if (obs.type === 'block') {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(drawX, floorY - obs.h, obs.w, obs.h);
-            ctx.strokeStyle = level.color; // إطار ملون
-            ctx.lineWidth = 2;
-            ctx.strokeRect(drawX, floorY - obs.h, obs.w, obs.h);
-            
-            // تفاصيل داخلية
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.fillRect(drawX + 5, floorY - obs.h + 5, obs.w - 10, obs.h - 10);
-        }
-        else if (obs.type === 'end') {
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            ctx.fillRect(drawX, 0, 50, H);
-        }
-    }
+  function updateHud() {
+    const level = game.level;
+    const progress = Math.max(0, Math.min(100, ((game.player.x - 140) / (level.length * TILE - 280)) * 100));
+    progressBar.style.width = progress.toFixed(1) + '%';
+    statsText.textContent = `${Math.floor(progress)}%`;
+    levelName.textContent = level.name;
+    difficultyTag.textContent = '• ' + level.difficulty;
+  }
 
-    // رسم اللاعب
-    if (!player.dead) {
-        ctx.save();
-        ctx.translate(player.x + player.size/2, player.y + player.size/2);
-        ctx.rotate(player.angle);
-        
-        // جسم اللاعب
-        ctx.fillStyle = player.color;
-        ctx.fillRect(-player.size/2, -player.size/2, player.size, player.size);
-        
-        // حدود اللاعب
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-player.size/2, -player.size/2, player.size, player.size);
-        
-        // وجه اللاعب (عينين)
-        ctx.fillStyle = '#000';
-        ctx.fillRect(2, -5, 6, 6);
-        ctx.fillRect(12, -5, 6, 6);
-        
-        ctx.restore();
-    }
+  function openSettings() {
+    settingsPanel.classList.add('open');
+  }
+  function closeSettings() {
+    settingsPanel.classList.remove('open');
+  }
 
-    // رسم الجسيمات
-    updateAndDrawParticles();
+  document.getElementById('settingsBtn').onclick = openSettings;
+  document.getElementById('openSettingsFromMenu').onclick = openSettings;
+  document.getElementById('closeSettings').onclick = closeSettings;
 
-    frameCount++;
-}
+  for (const btn of document.querySelectorAll('[data-level]')) {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.level);
+      loadLevel(i, true);
+    };
+  }
+  document.getElementById('startEasy').onclick = () => loadLevel(0, true);
+  document.getElementById('startHard').onclick = () => loadLevel(6, true);
 
-// --- نظام الجسيمات ---
-function createParticles(x, y, count, color) {
-    if(!settings.particles) return;
-    for(let i=0; i<count; i++) {
-        particles.push({
-            x: x, y: y,
-            vx: (Math.random() - 0.5) * 10,
-            vy: (Math.random() - 0.5) * 10,
-            life: 1.0,
-            color: color
-        });
-    }
-}
+  function syncSettingsToUI() {
+    settingEls.sound.value = S.settings.sound;
+    settingEls.music.value = S.settings.music;
+    settingEls.musicVol.value = S.settings.musicVol;
+    settingEls.shake.value = S.settings.shake;
+    settingEls.theme.value = S.settings.theme;
+    applyTheme();
+  }
 
-function updateAndDrawParticles() {
-    for(let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.03;
-        
-        if(p.life <= 0) {
-            particles.splice(i, 1);
+  Object.entries(settingEls).forEach(([key, el]) => {
+    el.addEventListener('change', () => {
+      if (key === 'musicVol') {
+        S.settings.musicVol = Number(el.value);
+      } else {
+        S.settings[key] = el.value;
+      }
+
+      applyTheme(); 
+      saveSettings(); 
+
+      if (S.settings.music === 'on' || S.settings.sound === 'on') {
+        ensureAudio(); 
+      }
+
+      if (audio.musicGain) {
+        if (S.settings.music === 'on') {
+          audio.musicGain.gain.value = (S.settings.musicVol || 30) / 100 * 0.5;
         } else {
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, 4, 4);
-            ctx.globalAlpha = 1.0;
+          audio.musicGain.gain.value = 0;
         }
-    }
-}
+      }
 
-// --- حلقة اللعبة ---
-function loop() {
-    if(gameState === 'PLAYING') {
-        update();
-        draw();
-        requestAnimationFrame(loop);
-    } else if (gameState === 'DEAD' || gameState === 'WIN') {
-        draw(); // استمرار الرسم للجسيمات
-        if(particles.length > 0) requestAnimationFrame(loop);
-    }
-}
-
-// --- إدارة الواجهة ---
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    if(id) document.getElementById(id).classList.add('active');
-}
-
-function renderLevelSelect() {
-    const grid = document.getElementById('levelGrid');
-    grid.innerHTML = '';
-    levels.forEach((lvl, idx) => {
-        const card = document.createElement('div');
-        card.className = 'level-card';
-        card.style.borderBottom = `4px solid ${lvl.color}`;
-        card.innerHTML = `<div class="level-num">${lvl.id}</div><div class="level-name">${lvl.name}</div>`;
-        card.onclick = () => startGame(idx);
-        grid.appendChild(card);
+      if (key === 'theme') showToast('تم تغيير المظهر');
+      if (key === 'music') showToast(S.settings.music === 'on' ? 'تم تشغيل الموسيقى' : 'تم إيقاف الموسيقى');
+      if (key === 'sound') showToast(S.settings.sound === 'on' ? 'تم تشغيل الصوت' : 'تم إيقاف الصوت');
+      if (key === 'shake') showToast(S.settings.shake === 'on' ? 'تم تشغيل الاهتزاز' : 'تم إيقاف الاهتزاز');
     });
-}
+    el.addEventListener('input', () => {
+      if (key === 'musicVol') {
+        S.settings.musicVol = Number(el.value);
+        saveSettings();
+      }
+    });
+  });
 
-function updateAttempts() {
-    document.getElementById('attDisplay').innerText = attempts;
-}
+  syncSettingsToUI();
 
-// حفظ وتحميل التقدم
-function saveProgress() {
-    localStorage.setItem('gd_level_' + currentLevelIdx, 'completed');
-}
-
-function resetProgress() {
-    localStorage.clear();
-    alert('تم حذف جميع البيانات!');
-}
-
-// إعدادات الصوت
-document.getElementById('volControl').addEventListener('input', (e) => {
-    settings.volume = e.target.value / 100;
-});
-document.getElementById('particlesCheck').addEventListener('change', (e) => {
-    settings.particles = e.target.checked;
-});
-document.getElementById('shakeCheck').addEventListener('change', (e) => {
-    settings.shake = e.target.checked;
-});
-
-// البدء
-renderLevelSelect();
-// تشغيل خلفية بسيطة في القائمة
-function menuLoop() {
-    if(gameState === 'MENU') {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0,0,W,H);
-        // نجوم خلفية
-        if(Math.random() > 0.9) {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
-        }
-        requestAnimationFrame(menuLoop);
+  function jump() {
+    if (!S.running) return;
+    ensureAudio();
+    const p = game.player;
+    if (p.coyote > 0 || p.onGround) {
+      p.vy = jumpVel;
+      p.onGround = false;
+      p.coyote = 0;
+      p.jumpBuffer = 0;
+      p.rot += 0.3;
+      addParticles(p.x + p.w/2, p.y + p.h, 8, 'rgba(124,247,255,.9)');
+      beepJump();
+    } else {
+      p.jumpBuffer = 0.1;
     }
-}
-menuLoop();
+  }
 
+  function handleInputDown() {
+    if (!audio.started) ensureAudio();
+    if (!S.running) {
+      if (!hud.classList.contains('hidden')) {
+        loadLevel(S.levelIndex, false);
+      } else {
+        loadLevel(0, true);
+      }
+      return;
+    }
+    if (settingsPanel.classList.contains('open')) return;
+    game.jumpHeld = true;
+    jump();
+  }
+
+  function handleInputUp() {
+    game.jumpHeld = false;
+  }
+
+  addEventListener('keydown', (e) => {
+    game.keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Escape') {
+      if (settingsPanel.classList.contains('open')) closeSettings();
+      else if (S.running) { S.running = false; menu.classList.remove('hidden'); hud.classList.add('hidden'); }
+    }
+    if (e.key === 'r' || e.key === 'R') restartLevel();
+    if (e.key === 'n' || e.key === 'N') {
+      if (!S.running && S.levelIndex < levels.length - 1) loadLevel(S.levelIndex + 1, false);
+    }
+    if (e.key === 'Enter' && !S.running) {
+      if (S.levelIndex < levels.length - 1) loadLevel(S.levelIndex + 1, false);
+      else menu.classList.remove('hidden');
+    }
+    if (e.key === ' ' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      handleInputDown();
+    }
+  });
+  addEventListener('keyup', (e) => {
+    game.keys[e.key.toLowerCase()] = false;
+    if (e.key === ' ' || e.key === 'ArrowUp') handleInputUp();
+  });
+  addEventListener('mousedown', handleInputDown);
+  addEventListener('mouseup', handleInputUp);
+  addEventListener('touchstart', (e) => { e.preventDefault(); handleInputDown(); }, { passive: false });
+  addEventListener('touchend', handleInputUp);
+
+  function drawBackground(dt) {
+    const bg = THEMES[S.settings.theme] || THEMES.neon;
+    ctx.save();
+    ctx.scale(S.dpr, S.dpr);
+
+    // parallax stars
+    game.time += dt;
+    if (game.stars.length === 0) {
+      for (let i = 0; i < 120; i++) {
+        game.stars.push({ x: Math.random() * S.w, y: Math.random() * S.h, r: 0.6 + Math.random() * 1.8, sp: 10 + Math.random() * 30 });
+      }
+    }
+    ctx.clearRect(0, 0, S.w, S.h);
+    const g = ctx.createLinearGradient(0, 0, 0, S.h);
+    g.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--bg1').trim());
+    g.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim());
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S.w, S.h);
+
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < S.w; i += 48) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, S.h); ctx.stroke();
+    }
+    for (let j = 0; j < S.h; j += 48) {
+      ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(S.w, j); ctx.stroke();
+    }
+
+    const px = game.cameraX * 0.2;
+    for (const star of game.stars) {
+      star.x -= (star.sp * dt * 0.3 + 10) * game.worldSpeed / 260 * 0.005;
+      if (star.x < -10) { star.x = S.w + 10; star.y = Math.random() * S.h * 0.7; star.r = 0.5 + Math.random() * 1.7; star.sp = 10 + Math.random() * 30; }
+      ctx.fillStyle = `rgba(255,255,255,${0.4 + star.r / 6})`;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = bg.accent;
+    for (let i = -1; i < 3; i++) {
+      const x = ((i * 320) - (game.cameraX * 0.2) % 320);
+      ctx.beginPath();
+      ctx.ellipse(x, S.h * 0.2, 120, 42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawBlock(tile, time) {
+    const x = tile.x * TILE - game.cameraX;
+    const y = tile.y * TILE;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 2 + tile.phase);
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
+
+    if (tile.type === 'ground') {
+      ctx.fillStyle = 'rgba(255,255,255,.08)';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = `rgba(255,255,255,.04)`;
+      ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      ctx.strokeRect(x, y, TILE, TILE);
+      ctx.fillStyle = `rgba(124,247,255,${0.12 + pulse * 0.08})`;
+      ctx.fillRect(x, y, TILE, 4);
+      return;
+    }
+
+    if (tile.type === 'spike') {
+      ctx.fillStyle = 'rgba(0,0,0,.2)';
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + TILE - 3);
+      ctx.lineTo(x + TILE / 2, y + 6);
+      ctx.lineTo(x + TILE - 4, y + TILE - 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = accent2;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + TILE - 6);
+      ctx.lineTo(x + TILE / 2, y + 4);
+      ctx.lineTo(x + TILE - 4, y + TILE - 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.15)';
+      ctx.stroke();
+      return;
+    }
+
+    if (tile.type === 'platform') {
+      const yy = y + (tile.move ? Math.sin(time * 2 + tile.phase) * 12 : 0);
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      ctx.fillRect(x, yy, tile.w * TILE, 14);
+      ctx.fillStyle = accent;
+      ctx.fillRect(x, yy, tile.w * TILE, 4);
+      return;
+    }
+
+    if (tile.type === 'portal') {
+      ctx.save();
+      ctx.translate(x + TILE/2, y + TILE/2);
+      ctx.rotate(time * 2);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 14 + pulse * 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = accent2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22 + pulse * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    if (tile.type === 'boost') {
+      ctx.fillStyle = 'rgba(103,245,141,.95)';
+      ctx.beginPath();
+      ctx.moveTo(x + 9, y + 20);
+      ctx.lineTo(x + 22, y + 10);
+      ctx.lineTo(x + 17, y + 20);
+      ctx.lineTo(x + 31, y + 20);
+      ctx.lineTo(x + 18, y + 30);
+      ctx.lineTo(x + 23, y + 20);
+      ctx.closePath();
+      ctx.fill();
+      return;
+    }
+
+    if (tile.type === 'movingSaw') {
+      const yy = y + Math.sin(time * 2 + tile.phase) * 22;
+      ctx.save();
+      ctx.translate(x + 20, yy + 20);
+      ctx.rotate(time * 5);
+      ctx.strokeStyle = accent2;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 12);
+        ctx.lineTo(Math.cos(a) * 21, Math.sin(a) * 21);
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
+
+    if (tile.type === 'finish') {
+      ctx.fillStyle = accent;
+      ctx.fillRect(x + 18, y - 120, 4, 160);
+      ctx.fillStyle = `rgba(124,247,255,.16)`;
+      ctx.fillRect(x - 6, 0, 20, S.h);
+      ctx.fillStyle = accent2;
+      ctx.beginPath();
+      ctx.arc(x + 20, y - 90, 12 + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+  }
+
+  function drawPlayer(dt) {
+    const p = game.player;
+    const px = p.x - game.cameraX;
+    const py = p.y;
+    const hue = (game.time * 40) % 360;
+
+    // trail
+    p.trail.push({ x: px + p.w/2, y: py + p.h/2, age: 0 });
+    if (p.trail.length > 20) p.trail.shift();
+    ctx.save();
+    for (let i = 0; i < p.trail.length; i++) {
+      const t = p.trail[i];
+      t.age += dt;
+      const a = i / p.trail.length;
+      ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${a * 0.35})`;
+      const s = 8 + a * 10;
+      ctx.fillRect(t.x - s/2, t.y - s/2, s, s);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(px + p.w/2, py + p.h/2);
+    ctx.rotate(p.rot);
+    ctx.scale(p.scale, p.scale);
+    ctx.shadowColor = `hsla(${hue}, 100%, 70%, .8)`;
+    ctx.shadowBlur = 16;
+    const grad = ctx.createLinearGradient(-18, -18, 18, 18);
+    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+    grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim());
+    ctx.fillStyle = grad;
+    ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-p.w/2, -p.h/2, p.w, p.h);
+    ctx.fillStyle = 'rgba(255,255,255,.16)';
+    ctx.fillRect(-p.w/2 + 5, -p.h/2 + 5, p.w - 10, 6);
+    ctx.restore();
+  }
+
+  function update(dt) {
+    updateMusic(dt);
+    if (!S.running || settingsPanel.classList.contains('open')) return;
+    const p = game.player;
+    const level = game.level;
+
+    const speedFactor = 1;
+    game.worldSpeed = level.speed * speedFactor;
+
+    p.vx = game.worldSpeed;
+    p.vy += gravity * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.rot += dt * 6;
+    p.scale = p.onGround ? 1 : 0.95 + Math.min(0.12, Math.abs(p.vy) / 2600);
+    p.coyote = p.onGround ? coyoteTime : Math.max(0, p.coyote - dt);
+    if (p.jumpBuffer > 0) p.jumpBuffer -= dt;
+    game.cameraX = p.x - 140;
+
+    let grounded = false;
+    let hitFinish = false;
+
+    for (const b of game.blocks) {
+      const bx = b.x * TILE;
+      const by = b.y * TILE;
+      let rect = { x: bx, y: by, w: b.w * TILE, h: b.h * TILE };
+      if (b.type === 'platform') {
+        rect = { x: bx, y: by + (b.move ? Math.sin(game.time * 2 + b.phase) * 12 : 0), w: b.w * TILE, h: 14 };
+      } else if (b.type === 'movingSaw') {
+        rect = { x: bx, y: by + Math.sin(game.time * 2 + b.phase) * 22, w: 40, h: 40 };
+      } else if (b.type === 'finish') {
+        rect = { x: bx + 10, y: 0, w: 16, h: S.h };
+      }
+
+      const prect = { x: p.x, y: p.y, w: p.w, h: p.h };
+
+      if (b.type === 'boost') {
+        if (rectsIntersect(prect, { x: bx, y: by, w: TILE, h: TILE })) {
+          game.worldSpeed = Math.max(game.worldSpeed, (b.speed || 1.2) * level.speed);
+          addParticles(p.x + p.w/2, p.y + p.h/2, 2, 'rgba(103,245,141,.95)');
+        }
+      }
+
+      if (b.type === 'portal') {
+        if (rectsIntersect(prect, { x: bx, y: by, w: TILE, h: TILE })) {
+          p.vy += -420 * (b.jump || 1.3) * dt * 60;
+          addParticles(p.x + p.w/2, p.y + p.h/2, 2, 'rgba(124,247,255,.95)');
+        }
+      }
+
+      if (b.type === 'finish') {
+        if (p.x + p.w > bx + 8) hitFinish = true;
+        continue;
+      }
+
+      if (b.type === 'spike') {
+        const spikeRect = { x: bx + 4, y: by + 4, w: TILE - 8, h: TILE - 4 };
+        if (rectsIntersect(prect, spikeRect)) {
+          die('اصطدمت بشوكة');
+          return;
+        }
+      }
+
+      if (b.type === 'movingSaw') {
+        const sawRect = { x: rect.x + 2, y: rect.y + 2, w: 36, h: 36 };
+        if (rectsIntersect(prect, sawRect)) {
+          die('المِنشار قطعك');
+          return;
+        }
+      }
+
+      if ((b.type === 'ground' || b.type === 'platform') && rectsIntersect(prect, rect)) {
+        const prevBottom = (p.y - p.vy * dt) + p.h;
+        const prevTop = (p.y - p.vy * dt);
+        const prevLeft = (p.x - p.vx * dt);
+        if (prevBottom <= rect.y + 8 && p.vy >= 0) {
+          p.y = rect.y - p.h;
+          p.vy = 0;
+          grounded = true;
+        } else if (prevTop >= rect.y + rect.h - 8 && p.vy < 0) {
+          p.y = rect.y + rect.h;
+          p.vy = 60;
+        } else if (prevLeft + p.w <= rect.x + 8) {
+          die('اصطدمت بجدار');
+          return;
+        }
+      }
+    }
+
+    p.onGround = grounded;
+    if (grounded) {
+      p.coyote = coyoteTime;
+      if (Math.abs(p.vy) < 5) {
+        addParticles(p.x + p.w/2, p.y + p.h, 1, 'rgba(124,247,255,.8)');
+      }
+    } else if (p.jumpBuffer > 0 && p.coyote > 0) {
+      p.vy = jumpVel;
+      p.jumpBuffer = 0;
+      beepJump();
+    }
+
+    if (p.y > S.h + 120) {
+      die('سقطت');
+      return;
+    }
+
+    game.cameraX = Math.max(0, game.cameraX);
+    game.time += dt;
+    S.shake = Math.max(0, S.shake - dt * 24);
+    S.deathFlash = Math.max(0, S.deathFlash - dt * 2.8);
+
+    game.particles.forEach(pt => {
+      pt.age += dt;
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.vy += 500 * dt;
+    });
+    game.particles = game.particles.filter(pt => pt.age < pt.life);
+
+    if (hitFinish) {
+      endLevel();
+      return;
+    }
+
+    updateHud();
+  }
+
+  function render(dt) {
+    drawBackground(dt);
+
+    ctx.save();
+    ctx.scale(S.dpr, S.dpr);
+    if (S.shake > 0) {
+      const s = S.shake;
+      ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+    }
+
+    // world
+    for (const b of game.blocks) drawBlock(b, game.time);
+
+    // particles
+    for (const pt of game.particles) {
+      const a = 1 - (pt.age / pt.life);
+      ctx.fillStyle = pt.color.replace(')', `, ${Math.max(0, a)})`).replace('rgba', 'rgba');
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillRect(pt.x - game.cameraX - pt.size/2, pt.y - pt.size/2, pt.size, pt.size);
+      ctx.globalAlpha = 1;
+    }
+
+    if (S.running) drawPlayer(dt);
+
+    // death flash
+    if (S.deathFlash > 0) {
+      ctx.fillStyle = `rgba(255,80,108,${S.deathFlash * 0.12})`;
+      ctx.fillRect(0, 0, S.w, S.h);
+    }
+
+    // vignette
+    const vignette = ctx.createRadialGradient(S.w/2, S.h/2, S.h*0.2, S.w/2, S.h/2, S.h*0.8);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,.35)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, S.w, S.h);
+
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    if (S.running) update(dt);
+    render(dt);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // initial screen
+  centerMsg.classList.remove('hidden');
+  centerTitle.textContent = 'Neon Dash';
+  centerSub.textContent = 'اضغط Start من القائمة للبدء';
+  menu.classList.remove('hidden');
+  hud.classList.add('hidden');
+
+  // preload controls to settings
+  if (S.settings.musicVol == null) S.settings.musicVol = 30;
+  syncSettingsToUI();
+  applyTheme();
+  saveSettings();
+
+  // useful info for gameplay
+  showToast('مستعد؟ جرّب Level 1 أولاً', 1800);
+})();
 </script>
 </body>
 </html>
